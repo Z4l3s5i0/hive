@@ -1,7 +1,17 @@
 # Build stage: use Rust to compile the project to WASM/WASIX
-FROM rust:1.92 AS builder
+FROM rust:1.94 as builder
 
-RUN apt-get update && apt-get install -y git libssl-dev pkg-config curl build-essential binutils cmake libstdc++-12-dev xz-utils
+RUN apt-get update && apt-get install -y  gcc \
+                                           g++ \
+                                           make \
+                                           pkg-config \
+                                           libssl-dev \
+                                           curl \
+                                           git \
+                                           cmake \
+                                           binutils \
+                                           xz-utils \
+                                           libstdc++-12-dev
 
 # Install LLVM/Clang from GitHub release
 RUN curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.0/LLVM-22.1.0-Linux-X64.tar.xz -o llvm.tar.xz && \
@@ -9,10 +19,19 @@ RUN curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.
     tar -xJf llvm.tar.xz -C /opt/llvm --strip-components=1 && \
     rm llvm.tar.xz
 
-ENV PATH="/opt/llvm/bin:${PATH}"
+# Install wasi-sdk from GitHub release
+RUN curl -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-25/wasi-sdk-25.0-x86_64-linux.tar.gz -o wasi-sdk.tar.gz && \
+    mkdir -p /opt/wasi-sdk && \
+    tar -xzf wasi-sdk.tar.gz -C /opt/wasi-sdk --strip-components=1 && \
+    rm wasi-sdk.tar.gz
+
+ENV PATH="/opt/llvm/bin:/opt/wasi-sdk/bin:${PATH}"
+ENV WASI_SDK_PATH="/opt/wasi-sdk"
 ENV CC=clang
 ENV AR=llvm-ar
 ENV LD=ld.lld
+ENV NM=llvm-nm
+ENV RANLIB=llvm-ranlib
 
 # Install Wasmer
 RUN curl https://get.wasmer.io -sSfL | sh
@@ -32,27 +51,17 @@ WORKDIR /app/wasix-based-evm
 ENV RUSTFLAGS_HOST="-C linker=clang -C link-arg=-fuse-ld=lld"
 # The target (WASM) needs specific features for WASIX thread support and atomics.
 # We also ensure the linker uses lld for WASM-side linking and provides the thread-related flags.
-# Using the installed LLVM/Clang.
-ENV CARGO_TARGET_WASM32_WASMER_WASI_RUSTFLAGS="-C target-feature=+atomics,+bulk-memory,+mutable-globals -C link-arg=--shared-memory -C link-arg=--max-memory=4294967296 -C link-arg=--import-memory -C link-arg=--export-dynamic -C linker-flavor=gcc -C linker=clang -C link-arg=-fuse-ld=lld"
+# Added -pthread to fix TLS/errno issues and -C link-arg=-Wl,--import-undefined.    "-C", "target-feature=+bulk-memory",
+                                                                                #    "-C", "panic=abort",
+                                                                                #    "-C", "atomics"
+ENV CARGO_TARGET_WASM32_WASMER_WASI_RUSTFLAGS="-C target-feature=+atomics,+bulk-memory,+mutable-globals -C panic=abort -C link-arg=--shared-memory -C link-arg=--max-memory=4294967296 -C link-arg=--import-memory -C link-arg=--export-dynamic -C link-arg=-pthread -C link-arg=-Wl,--import-undefined -C link-arg=-fuse-ld=lld"
 
-# Pre-download and setup the wasix toolchain (ignore first error as it's for toolchain setup)
-RUN RUSTFLAGS=$RUSTFLAGS_HOST cargo wasix build --release || true
-
-# Robustly link the host's cargo to the toolchain's bin directory
-# and set the CARGO environment variable to the host's cargo
-RUN TOOLCHAIN_BIN=$(find /root/.local/share/cargo-wasix/toolchains -name bin -type d | head -n 1); \
-    if [ -n "$TOOLCHAIN_BIN" ]; then \
-        ln -sf $(which cargo) "$TOOLCHAIN_BIN/cargo"; \
-        echo "Linked cargo to $TOOLCHAIN_BIN/cargo"; \
-    fi
-
-# Now run the actual build
-# Using RUSTUP_TOOLCHAIN=stable avoids the custom 'wasix' toolchain's cargo check
-# while still utilizing the wasm32-wasmer-wasi target that cargo-wasix enables.
-RUN RUSTUP_TOOLCHAIN=stable RUSTFLAGS=$RUSTFLAGS_HOST cargo wasix build --release
+# Now run the actual build using cargo wasix
+# Explicitly use the stable toolchain's cargo while calling 'cargo wasix'
+RUN RUSTFLAGS=$RUSTFLAGS_HOST cargo +stable wasix build --release
 
 # Final stage: minimal image with Wasmer to run the client
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 RUN apt-get update && apt-get install -y curl jq iproute2 && rm -rf /var/lib/apt/lists/*
 
