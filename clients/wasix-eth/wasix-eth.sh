@@ -60,13 +60,14 @@ fi
 # These flags trigger block import during node startup.
 # We do this in a single process run to keep it simple, 
 # as the wasix-eth implementation handles imports before starting RPC.
+IMPORT_FLAGS=""
 if [ -f /chain.rlp ]; then
     echo "Found /chain.rlp, adding --import-chain flag"
-    FLAGS="$FLAGS --import-chain /chain.rlp"
+    IMPORT_FLAGS="$IMPORT_FLAGS --import-chain /chain.rlp"
 fi
 if [ -d /blocks ]; then
     echo "Found /blocks directory, adding --import-blocks flag"
-    FLAGS="$FLAGS --import-blocks /blocks"
+    IMPORT_FLAGS="$IMPORT_FLAGS --import-blocks /blocks"
 fi
 
 # RPC Ports
@@ -90,5 +91,13 @@ ip=$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
 FLAGS="$FLAGS --ext-ip $ip"
 
 # Run the implementation with the requested flags.
+echo "Initializing genesis..."
+$binary init $FLAGS
+
+if [ "$IMPORT_FLAGS" != "" ]; then
+    echo "Importing blocks..."
+    $binary import $FLAGS $IMPORT_FLAGS
+fi
+
 echo "Running wasix-eth with flags $FLAGS"
-$binary $FLAGS
+$binary run $FLAGS
