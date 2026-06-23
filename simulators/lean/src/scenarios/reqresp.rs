@@ -5,18 +5,18 @@ use crate::utils::helper::{
 use crate::utils::libp2p_mock::{
     client_multiaddr, compute_client_peer_id, decode_request, encode_request, encode_request_raw,
     extract_ip_port, replace_multiaddr_ip, BlocksByRangeV1Request, BlocksByRootV1Request,
-    Checkpoint, LeanSignedBlock, MockNode, Status, MAX_REQUEST_BLOCKS,
-    RESPONSE_CODE_INVALID_REQUEST, RESPONSE_CODE_SUCCESS,
+    Checkpoint, LeanBlock, MockNode, Status, MAX_REQUEST_BLOCKS, RESPONSE_CODE_INVALID_REQUEST,
+    RESPONSE_CODE_SUCCESS,
 };
 use crate::utils::util::{
     default_genesis_time, fork_choice_head_slot, http_client, lean_api_url, lean_clients,
-    lean_environment, lean_single_client_runtime_setup, load_fork_choice_response,
-    prepare_client_runtime_files, run_data_test_with_timeout, selected_lean_devnet,
-    simulator_container_ip, ClientUnderTestRole, LeanDevnet, TimedDataTestSpec,
+    lean_environment, load_fork_choice_response, prepare_client_runtime_files,
+    run_data_test_with_timeout, selected_lean_devnet, simulator_container_ip, ClientUnderTestRole,
+    TimedDataTestSpec,
 };
 use alloy_primitives::B256;
 use hivesim::{dyn_async, Client, Test};
-use ssz::{Decode, Encode};
+use ssz::Encode;
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -64,10 +64,23 @@ dyn_async! {
         if clients.is_empty() {
             panic!("No lean clients were selected for this run");
         }
+        let planning = test.plan_test("reqresp: client launch", true);
 
         for client in &clients {
-            let (_fresh_client_environments, _fresh_client_files) = lean_single_client_runtime_setup(
-                &client.name);
+            if !planning {
+                let environment = lean_environment();
+                let files = prepare_client_runtime_files(&client.name, &environment)
+                    .unwrap_or_else(|err| panic!("Unable to prepare runtime assets for {}: {err}", client.name));
+                let launch_client = test
+                    .start_client_with_files(client.name.clone(), Some(environment), Some(files))
+                    .await;
+                if let Err(err) = launch_client.stop().await {
+                    eprintln!(
+                        "Unable to stop reqresp launch-attribution client {}: {err}",
+                        client.name
+                    );
+                }
+            }
 
 
             let status_happy_genesis_time = default_genesis_time();
@@ -89,7 +102,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 2,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -119,7 +132,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -152,7 +165,7 @@ dyn_async! {
                         ),
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 2,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -182,7 +195,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -212,7 +225,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -242,7 +255,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -272,7 +285,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -302,7 +315,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -332,7 +345,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -362,7 +375,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -392,7 +405,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -422,7 +435,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -452,7 +465,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -482,7 +495,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -512,7 +525,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -542,7 +555,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -572,7 +585,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -602,7 +615,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -632,7 +645,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 2,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -662,7 +675,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 2,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -692,7 +705,7 @@ dyn_async! {
                         source_helper_validator_indices: None,
                         split_helper_validators_across_mesh: false,
                         helper_peer_count: 1,
-                        helper_fork_digest_profile: if selected_lean_devnet() == LeanDevnet::Devnet4 {
+                        helper_fork_digest_profile: if selected_lean_devnet().uses_latest_leanspec_format() {
                             HelperGossipForkDigestProfile::SelectedDevnet
                         } else {
                             HelperGossipForkDigestProfile::LegacyDevnet0
@@ -989,11 +1002,11 @@ dyn_async! {
             .collect::<Vec<_>>();
         assert_eq!(success_payloads.len(), 1, "client should return exactly one known block");
 
-        let signed_block = LeanSignedBlock::from_ssz_bytes(success_payloads[0])
+        let block = LeanBlock::from_signed_wire_ssz_bytes(success_payloads[0])
             .expect("returned head block should decode from SSZ");
-        assert_eq!(signed_block.block.slot, expected_node.slot, "returned block slot should match fork_choice head");
-        assert_eq!(signed_block.block.parent_root, expected_node.parent_root, "returned block parent should match fork_choice head");
-        assert_eq!(signed_block.block.proposer_index, expected_node.proposer_index, "returned block proposer should match fork_choice head");
+        assert_eq!(block.slot, expected_node.slot, "returned block slot should match fork_choice head");
+        assert_eq!(block.parent_root, expected_node.parent_root, "returned block parent should match fork_choice head");
+        assert_eq!(block.proposer_index, expected_node.proposer_index, "returned block proposer should match fork_choice head");
     }
 }
 
@@ -1047,11 +1060,11 @@ dyn_async! {
         );
 
         for (payload, expected_node) in success_payloads.iter().zip(known_nodes.iter()) {
-            let signed_block = LeanSignedBlock::from_ssz_bytes(payload)
+            let block = LeanBlock::from_signed_wire_ssz_bytes(payload)
                 .expect("returned block should decode from SSZ");
-            assert_eq!(signed_block.block.slot, expected_node.slot, "returned block slot should match requested fork_choice node");
-            assert_eq!(signed_block.block.parent_root, expected_node.parent_root, "returned block parent should match requested fork_choice node");
-            assert_eq!(signed_block.block.proposer_index, expected_node.proposer_index, "returned block proposer should match requested fork_choice node");
+            assert_eq!(block.slot, expected_node.slot, "returned block slot should match requested fork_choice node");
+            assert_eq!(block.parent_root, expected_node.parent_root, "returned block parent should match requested fork_choice node");
+            assert_eq!(block.proposer_index, expected_node.proposer_index, "returned block proposer should match requested fork_choice node");
         }
     }
 }
@@ -1250,11 +1263,11 @@ dyn_async! {
             .collect::<Vec<_>>();
         assert_eq!(success_payloads.len(), 1, "client should return exactly one known range block");
 
-        let signed_block = LeanSignedBlock::from_ssz_bytes(success_payloads[0])
+        let block = LeanBlock::from_signed_wire_ssz_bytes(success_payloads[0])
             .expect("returned range block should decode from SSZ");
-        assert_eq!(signed_block.block.slot, expected_node.slot, "returned range block slot should match requested slot");
-        assert_eq!(signed_block.block.parent_root, expected_node.parent_root, "returned range block parent should match fork_choice node");
-        assert_eq!(signed_block.block.proposer_index, expected_node.proposer_index, "returned range block proposer should match fork_choice node");
+        assert_eq!(block.slot, expected_node.slot, "returned range block slot should match requested slot");
+        assert_eq!(block.parent_root, expected_node.parent_root, "returned range block parent should match fork_choice node");
+        assert_eq!(block.proposer_index, expected_node.proposer_index, "returned range block proposer should match fork_choice node");
     }
 }
 
@@ -1309,26 +1322,26 @@ dyn_async! {
 
         let mut previous_slot = None;
         for payload in success_payloads {
-            let signed_block = LeanSignedBlock::from_ssz_bytes(payload)
+            let block = LeanBlock::from_signed_wire_ssz_bytes(payload)
                 .expect("returned range block should decode from SSZ");
             assert!(
-                signed_block.block.slot >= start_slot && signed_block.block.slot < start_slot + count,
+                block.slot >= start_slot && block.slot < start_slot + count,
                 "returned range block slot should be inside requested range"
             );
             if let Some(previous_slot) = previous_slot {
                 assert!(
-                    signed_block.block.slot > previous_slot,
+                    block.slot > previous_slot,
                     "BlocksByRange responses should be strictly increasing by slot"
                 );
             }
             if let Some(expected_node) = known_nodes
                 .iter()
-                .find(|node| node.slot == signed_block.block.slot)
+                .find(|node| node.slot == block.slot)
             {
-                assert_eq!(signed_block.block.parent_root, expected_node.parent_root, "returned range block parent should match fork_choice node");
-                assert_eq!(signed_block.block.proposer_index, expected_node.proposer_index, "returned range block proposer should match fork_choice node");
+                assert_eq!(block.parent_root, expected_node.parent_root, "returned range block parent should match fork_choice node");
+                assert_eq!(block.proposer_index, expected_node.proposer_index, "returned range block proposer should match fork_choice node");
             }
-            previous_slot = Some(signed_block.block.slot);
+            previous_slot = Some(block.slot);
         }
     }
 }

@@ -1,8 +1,8 @@
-#!/bin/bash 
-set -euo pipefail 
+#!/bin/bash
+set -euo pipefail
 
-DEVNET_LABEL="${HIVE_LEAN_DEVNET_LABEL:-devnet3}" 
-ASSET_ROOT="/tmp/qlean-runtime" 
+DEVNET_LABEL="${HIVE_LEAN_DEVNET_LABEL:-devnet4}"
+ASSET_ROOT="/tmp/qlean-runtime"
 LOCAL_IP_PLACEHOLDER="__HIVE_LOCAL_IP__"
 
 detect_local_ip() {
@@ -30,11 +30,11 @@ materialize_runtime_local_ip() {
 }
 
 case "$DEVNET_LABEL" in
-    devnet3)
-        DEFAULT_QLEAN_BIN="/usr/local/bin/qlean-devnet3"
-        ;;
     devnet4)
         DEFAULT_QLEAN_BIN="/usr/local/bin/qlean-devnet4"
+        ;;
+    devnet5)
+        DEFAULT_QLEAN_BIN="/usr/local/bin/qlean-devnet5"
         ;;
     *)
         echo "Unsupported Lean devnet label: $DEVNET_LABEL" >&2
@@ -65,12 +65,17 @@ FLAGS=(
     --node-id "$CLEAN_NODE_ID" 
     --node-key "$NODE_KEY"
     --listen-addr "/ip4/0.0.0.0/udp/9000/quic-v1" 
+    --bootnodes "$ASSET_ROOT/nodes.yaml"
     --api-host "0.0.0.0" 
     --api-port 5052 
 ) 
 
 if [ "${HIVE_IS_AGGREGATOR:-0}" = "1" ]; then
     FLAGS+=(--is-aggregator)
+fi
+
+if [ -n "${HIVE_ATTESTATION_COMMITTEE_COUNT:-}" ] && [ "$HIVE_ATTESTATION_COMMITTEE_COUNT" != "1" ]; then
+    FLAGS+=(--attestation-committee-count "$HIVE_ATTESTATION_COMMITTEE_COUNT")
 fi
 
 if [ -n "${HIVE_CHECKPOINT_SYNC_URL:-}" ]; then

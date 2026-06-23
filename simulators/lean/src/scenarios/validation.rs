@@ -1,11 +1,11 @@
 use crate::utils::libp2p_mock::{
-    decode_request, encode_gossip_data, extract_ip_port, lean_block_topic, replace_multiaddr_ip,
-    LeanSignedBlock, MockNode, Status, RESPONSE_CODE_SUCCESS,
+    decode_request, encode_gossip_block, extract_ip_port, lean_block_topic, replace_multiaddr_ip,
+    LeanBlock, MockNode, Status, RESPONSE_CODE_SUCCESS,
 };
 use crate::utils::util::{
     expect_single_client, lean_clients, lean_environment, lean_single_client_runtime_setup,
     load_fork_choice_response, prepare_client_runtime_files, selected_lean_devnet,
-    simulator_container_ip, LeanDevnet,
+    simulator_container_ip,
 };
 use alloy_primitives::B256;
 use hivesim::{dyn_async, Client, Test};
@@ -86,7 +86,7 @@ dyn_async! {
             port,
         ).expect("should generate ENR for mock node");
 
-        let fork_digest = if selected_lean_devnet() == LeanDevnet::Devnet4 {
+        let fork_digest = if selected_lean_devnet().uses_latest_leanspec_format() {
             "12345678"
         } else {
             "devnet0"
@@ -121,10 +121,10 @@ dyn_async! {
 
         mock.process_events_for(Duration::from_secs(3)).await;
 
-        let invalid_block = LeanSignedBlock::build_minimal(
+        let invalid_block = LeanBlock::build_minimal(
             1, 9999, B256::ZERO, B256::ZERO
         );
-        let block_bytes = encode_gossip_data(&invalid_block);
+        let block_bytes = encode_gossip_block(&invalid_block);
         mock.publish(block_topic, block_bytes)
             .expect("should publish invalid block");
 
@@ -163,7 +163,7 @@ dyn_async! {
             port,
         ).expect("should generate ENR for mock node");
 
-        let fork_digest = if selected_lean_devnet() == LeanDevnet::Devnet4 {
+        let fork_digest = if selected_lean_devnet().uses_latest_leanspec_format() {
             "12345678"
         } else {
             "devnet0"
@@ -197,10 +197,10 @@ dyn_async! {
 
         mock.process_events_for(Duration::from_secs(3)).await;
 
-        let invalid_block = LeanSignedBlock::build_minimal(
+        let invalid_block = LeanBlock::build_minimal(
             1, 0, B256::from_slice(&[0xde; 32]), B256::ZERO
         );
-        let block_bytes = encode_gossip_data(&invalid_block);
+        let block_bytes = encode_gossip_block(&invalid_block);
         mock.publish(block_topic, block_bytes)
             .expect("should publish invalid block");
 
@@ -239,7 +239,7 @@ dyn_async! {
             port,
         ).expect("should generate ENR for mock node");
 
-        let fork_digest = if selected_lean_devnet() == LeanDevnet::Devnet4 {
+        let fork_digest = if selected_lean_devnet().uses_latest_leanspec_format() {
             "12345678"
         } else {
             "devnet0"
@@ -273,10 +273,10 @@ dyn_async! {
 
         mock.process_events_for(Duration::from_secs(3)).await;
 
-        let invalid_block = LeanSignedBlock::build_minimal(
+        let invalid_block = LeanBlock::build_minimal(
             1, 0, B256::ZERO, B256::from_slice(&[0xbe; 32])
         );
-        let block_bytes = encode_gossip_data(&invalid_block);
+        let block_bytes = encode_gossip_block(&invalid_block);
         mock.publish(block_topic, block_bytes)
             .expect("should publish invalid block");
 

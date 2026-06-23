@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-DEVNET_LABEL="${HIVE_LEAN_DEVNET_LABEL:-devnet3}"
+DEVNET_LABEL="${HIVE_LEAN_DEVNET_LABEL:-devnet4}"
 NODE_ID="${HIVE_NODE_ID:-ethlambda_0}"
 ASSET_ROOT="/tmp/ethlambda-runtime"
 LOCAL_IP_PLACEHOLDER="__HIVE_LOCAL_IP__"
@@ -28,11 +28,11 @@ materialize_runtime_local_ip() {
 }
 
 case "$DEVNET_LABEL" in
-    devnet3)
-        DEFAULT_ETHLAMBDA_BIN="/usr/local/bin/ethlambda-devnet3"
-        ;;
     devnet4)
         DEFAULT_ETHLAMBDA_BIN="/usr/local/bin/ethlambda-devnet4"
+        ;;
+    devnet5)
+        DEFAULT_ETHLAMBDA_BIN="/usr/local/bin/ethlambda-devnet5"
         ;;
     *)
         echo "Unsupported Lean devnet label: $DEVNET_LABEL" >&2
@@ -57,19 +57,35 @@ fi
 
 materialize_runtime_local_ip
 
-FLAGS=(
-    --genesis "$ASSET_ROOT/config.yaml"
-    --validators "$ASSET_ROOT/annotated_validators.yaml"
-    --bootnodes "$ASSET_ROOT/nodes.yaml"
-    --validator-config "$ASSET_ROOT/validator-config.yaml"
-    --hash-sig-keys-dir "$ASSET_ROOT/hash-sig-keys"
-    --gossipsub-port 9000
-    --http-address 0.0.0.0
-    --api-port 5052
-    --metrics-port 8080
-    --node-key "$ASSET_ROOT/node.key"
-    --node-id "$NODE_ID"
-)
+case "$DEVNET_LABEL" in
+    devnet3)
+        FLAGS=(
+            --custom-network-config-dir "$ASSET_ROOT"
+            --gossipsub-port 9000
+            --http-address 0.0.0.0
+            --api-port 5052
+            --metrics-port 8080
+            --node-key "$ASSET_ROOT/node.key"
+            --node-id "$NODE_ID"
+        )
+        ;;
+    devnet4|devnet5)
+        FLAGS=(
+            --genesis "$ASSET_ROOT/config.yaml"
+            --validators "$ASSET_ROOT/annotated_validators.yaml"
+            --bootnodes "$ASSET_ROOT/nodes.yaml"
+            --validator-config "$ASSET_ROOT/validator-config.yaml"
+            --hash-sig-keys-dir "$ASSET_ROOT/hash-sig-keys"
+            --gossipsub-port 9000
+            --http-address 0.0.0.0
+            --api-port 5052
+            --metrics-port 8080
+            --node-key "$ASSET_ROOT/node.key"
+            --node-id "$NODE_ID"
+            --data-dir /data
+        )
+        ;;
+esac
 
 if [ -n "${HIVE_CHECKPOINT_SYNC_URL:-}" ]; then
     FLAGS+=(--checkpoint-sync-url "$HIVE_CHECKPOINT_SYNC_URL")
@@ -77,6 +93,10 @@ fi
 
 if [ "${HIVE_IS_AGGREGATOR:-0}" = "1" ]; then
     FLAGS+=(--is-aggregator)
+fi
+
+if [ -n "${HIVE_ATTESTATION_COMMITTEE_COUNT:-}" ] && [ "$HIVE_ATTESTATION_COMMITTEE_COUNT" != "1" ]; then
+    FLAGS+=(--attestation-committee-count "$HIVE_ATTESTATION_COMMITTEE_COUNT")
 fi
 
 export RUST_LOG="${RUST_LOG:-info}"

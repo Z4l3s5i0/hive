@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-DEVNET_LABEL="${HIVE_LEAN_DEVNET_LABEL:-devnet3}"
+DEVNET_LABEL="${HIVE_LEAN_DEVNET_LABEL:-devnet4}"
 NODE_ID="${HIVE_NODE_ID:-lantern_0}"
 ASSET_ROOT="/tmp/lantern-runtime"
 LOCAL_IP_PLACEHOLDER="__HIVE_LOCAL_IP__"
@@ -28,13 +28,12 @@ materialize_runtime_local_ip() {
 }
 
 case "$DEVNET_LABEL" in
-    devnet3)
-        DEFAULT_LANTERN_BIN="/opt/lantern-devnet3/bin/lantern"
-        export LD_LIBRARY_PATH="/opt/lantern-devnet3/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-        DEFAULT_GOSSIP_TOPIC="devnet0"
-        ;;
     devnet4)
         DEFAULT_LANTERN_BIN="/opt/lantern/bin/lantern"
+        DEFAULT_GOSSIP_TOPIC="12345678"
+        ;;
+    devnet5)
+        DEFAULT_LANTERN_BIN="/usr/local/bin/lantern-devnet5"
         DEFAULT_GOSSIP_TOPIC="12345678"
         ;;
     *)
@@ -64,9 +63,8 @@ materialize_runtime_local_ip
 FLAGS=(
     --data-dir /data
     --genesis-config "$ASSET_ROOT/config.yaml"
-    --validator-registry-path "$ASSET_ROOT/validators.yaml"
     --nodes-path "$ASSET_ROOT/nodes.yaml"
-    --validator-config "$ASSET_ROOT/validator-config.yaml"
+    --validator_config "$ASSET_ROOT"
     --node-id "$NODE_ID"
     --node-key-path "$ASSET_ROOT/node.key"
     --listen-address "/ip4/0.0.0.0/udp/9000/quic-v1"
@@ -84,6 +82,10 @@ FLAGS+=(--devnet "$GOSSIP_TOPIC")
 
 if [ "${HIVE_IS_AGGREGATOR:-0}" = "1" ]; then
     FLAGS+=(--is-aggregator)
+fi
+
+if [ -n "${HIVE_ATTESTATION_COMMITTEE_COUNT:-}" ] && [ "$HIVE_ATTESTATION_COMMITTEE_COUNT" != "1" ]; then
+    FLAGS+=(--attestation-committee-count "$HIVE_ATTESTATION_COMMITTEE_COUNT")
 fi
 
 export RUST_LOG="${RUST_LOG:-info}"

@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-DEVNET_LABEL="${HIVE_LEAN_DEVNET_LABEL:-devnet3}"
+DEVNET_LABEL="${HIVE_LEAN_DEVNET_LABEL:-devnet4}"
 NODE_ID="${HIVE_NODE_ID:-ream_0}"
 BOOTNODES="${HIVE_BOOTNODES:-none}"
 ASSET_ROOT="/tmp/ream-runtime"
@@ -11,11 +11,11 @@ NETWORK_CONFIG="${HIVE_LEAN_NETWORK_CONFIG:-$ASSET_ROOT/config.yaml}"
 VALIDATOR_REGISTRY_PATH="${HIVE_LEAN_VALIDATOR_REGISTRY_PATH:-$ASSET_ROOT/validators.yaml}"
 
 case "$DEVNET_LABEL" in
-    devnet3)
-        DEFAULT_REAM_BIN="/usr/local/bin/ream-devnet3"
-        ;;
     devnet4)
         DEFAULT_REAM_BIN="/usr/local/bin/ream-devnet4"
+        ;;
+    devnet5)
+        DEFAULT_REAM_BIN="/usr/local/bin/ream-devnet5"
         ;;
     *)
         echo "Unsupported Lean devnet label: $DEVNET_LABEL" >&2
@@ -60,6 +60,10 @@ fi
 
 if [ "${HIVE_IS_AGGREGATOR:-0}" = "1" ]; then
     FLAGS+=(--is-aggregator)
+fi
+
+if [ -n "${HIVE_ATTESTATION_COMMITTEE_COUNT:-}" ] && [ "$HIVE_ATTESTATION_COMMITTEE_COUNT" != "1" ]; then
+    FLAGS+=(--attestation-committee-count "$HIVE_ATTESTATION_COMMITTEE_COUNT")
 fi
 
 if [ -n "${HIVE_CLIENT_PRIVATE_KEY:-}" ]; then

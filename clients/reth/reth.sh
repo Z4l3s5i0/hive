@@ -155,6 +155,7 @@ fi
 # Configure RPC.
 FLAGS="$FLAGS --http --http.addr=0.0.0.0 --http.api=admin,debug,trace,eth,net,txpool,web3,testing"
 FLAGS="$FLAGS --ws --ws.addr=0.0.0.0 --ws.api=admin,debug,trace,eth,net,txpool,web3,testing"
+FLAGS="$FLAGS --rpc.compute-state-root-for-eth-simulate"
 
 if [ "$HIVE_TERMINAL_TOTAL_DIFFICULTY" != "" ]; then
     JWT_SECRET="7365637265747365637265747365637265747365637265747365637265747365"
@@ -163,7 +164,11 @@ if [ "$HIVE_TERMINAL_TOTAL_DIFFICULTY" != "" ]; then
 fi
 
 # Configure NAT and disable pruning
-FLAGS="$FLAGS --nat none --block-interval 500000"
+FLAGS="$FLAGS --nat none --block-interval 500000 --debug.startup-sync-state-idle"
+
+if [ "$HIVE_DISCV5" != "" ]; then
+    FLAGS="$FLAGS --discovery.v5.port=30303"
+fi
 
 # Launch the main client.
 echo "Running reth with flags: $FLAGS"
