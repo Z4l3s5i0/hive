@@ -5,19 +5,20 @@
 # Immediately abort the script on any error encountered
 set -e
 
-binary=/usr/local/bin/wasix_eth
-FLAGS=""
-
-if [ "$HIVE_LOGLEVEL" != "" ]; then
-    # Mapping hive loglevels to our verbosity (0-5 -> 0-2 range roughly)
-    if [ "$HIVE_LOGLEVEL" -ge 4 ]; then
-        FLAGS="$FLAGS --verbose 2"
-    elif [ "$HIVE_LOGLEVEL" -ge 2 ]; then
-        FLAGS="$FLAGS --verbose 1"
-    else
-        FLAGS="$FLAGS --verbose 0"
-    fi
-fi
+binary=/usr/local/bin/wasix_eth.wasi.wasm
+FLAGS="--verbose 1"
+WASM_FLAGS="--enable-threads --net --volume ./:./"
+#
+#if [ "$HIVE_LOGLEVEL" != "" ]; then
+#    # Mapping hive loglevels to our verbosity (0-5 -> 0-2 range roughly)
+#    if [ "$HIVE_LOGLEVEL" -ge 4 ]; then
+#        FLAGS="$FLAGS --verbose 2"
+#    elif [ "$HIVE_LOGLEVEL" -ge 2 ]; then
+#        FLAGS="$FLAGS --verbose 1"
+#    else
+#        FLAGS="$FLAGS --verbose 0"
+#    fi
+#fi
 
 # Bootnodes
 if [ "$HIVE_BOOTNODE" != "" ]; then
@@ -92,12 +93,13 @@ FLAGS="$FLAGS --ext-ip $ip"
 
 # Run the implementation with the requested flags.
 echo "Initializing genesis..."
-$binary init $FLAGS
-
+wasmer run $binary $WASM_FLAGS "--" init $FLAGS
 if [ "$IMPORT_FLAGS" != "" ]; then
     echo "Importing blocks..."
-    $binary import $FLAGS $IMPORT_FLAGS
+#    $binary import $FLAGS $IMPORT_FLAGS
+    wasmer run $binary $WASM_FLAGS "--" import $FLAGS $IMPORT_FLAGS
 fi
 
 echo "Running wasix-eth with flags $FLAGS"
-$binary run $FLAGS
+#$binary run $FLAGS
+wasmer run $binary $WASM_FLAGS "--" $FLAGS

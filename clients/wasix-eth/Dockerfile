@@ -9,9 +9,18 @@ RUN apt-get update && apt-get install -y \
     iproute2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the pre-built binary from the host
-COPY wasix_eth /usr/local/bin/wasix_eth
-RUN chmod +x /usr/local/bin/wasix_eth
+RUN echo "Installing Wasmer CLI..."
+ENV WASMER_DIR=/root/.wasmer
+ENV PATH=$WASMER_DIR/bin:$WASMER_DIR/globals/bin:$PATH
+RUN curl https://get.wasmer.io -sSfL | sh
+
+## Copy the pre-built binary from the host RUST compiled variant
+#COPY wasix_eth /usr/local/bin/wasix_eth
+#RUN chmod +x /usr/local/bin/wasix_eth
+
+# Copy the pre-built binary from the host wasi compiled variant
+COPY wasix_eth.wasi.wasm /usr/local/bin/wasix_eth.wasi.wasm
+RUN chmod +x /usr/local/bin/wasix_eth.wasi.wasm
 
 # Generate a dummy version.txt (or handle it more properly if the binary supports --version)
 RUN echo "wasix-eth-0.1.0" > /version.txt
