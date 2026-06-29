@@ -12,7 +12,6 @@ def to_bool:
 
 # Check for unsupported forks
 def check_forks:
-  if env.HIVE_CANCUN_TIMESTAMP != null then error("Cancun fork not supported by wasix-eth") else . end |
   if env.HIVE_PRAGUE_TIMESTAMP != null then error("Prague fork not supported by wasix-eth") else . end |
   if env.HIVE_OSAKA_TIMESTAMP != null then error("Osaka fork not supported by wasix-eth") else . end
 ;
@@ -34,6 +33,7 @@ def check_forks:
       "berlinBlock": (env.HIVE_FORK_BERLIN|to_int // .config.berlinBlock),
       "londonBlock": (env.HIVE_FORK_LONDON|to_int // .config.londonBlock),
       "shanghaiTime": (env.HIVE_SHANGHAI_TIMESTAMP|to_int // .config.shanghaiTime),
+      "cancunTime": (env.HIVE_CANCUN_TIMESTAMP|to_int // .config.cancunTime),
       "terminalTotalDifficulty": (env.HIVE_TERMINAL_TOTAL_DIFFICULTY|to_int // .config.terminalTotalDifficulty)
     }
   )

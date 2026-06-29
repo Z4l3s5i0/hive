@@ -5,9 +5,11 @@
 # Immediately abort the script on any error encountered
 set -e
 
-binary=/usr/local/bin/wasix_eth.wasi.wasm
+binary=/usr/local/bin/wasix_eth
+#binary=/usr/local/bin/wasix_eth.wasi.wasm
 FLAGS="--verbose 1"
-WASM_FLAGS="--enable-threads --net --volume ./:./"
+WASM_FLAGS=""
+#"--enable-threads --net --volume ./:./ --"
 #
 #if [ "$HIVE_LOGLEVEL" != "" ]; then
 #    # Mapping hive loglevels to our verbosity (0-5 -> 0-2 range roughly)
@@ -33,8 +35,8 @@ if jq -e -f /mapper.jq /genesis-input.json > /genesis.json; then
     echo "jq success"
 else
     echo "jq failed or unsupported fork requested"
-    if [ "$HIVE_CANCUN_TIMESTAMP" != "" ]; then
-        echo "ERROR: Cancun fork is not supported by wasix-eth"
+    if [ "$HIVE_PRAGUE_TIMESTAMP" != "" ]; then
+        echo "ERROR: Prague fork is not supported by wasix-eth"
         exit 1
     fi
     cat /genesis-input.json > /genesis.json
@@ -93,13 +95,14 @@ FLAGS="$FLAGS --ext-ip $ip"
 
 # Run the implementation with the requested flags.
 echo "Initializing genesis..."
-wasmer run $binary $WASM_FLAGS "--" init $FLAGS
+#wasmer run $binary $WASM_FLAGS init $FLAGS
+$binary init $FLAGS $IMPORT_FLAGS
 if [ "$IMPORT_FLAGS" != "" ]; then
     echo "Importing blocks..."
-#    $binary import $FLAGS $IMPORT_FLAGS
-    wasmer run $binary $WASM_FLAGS "--" import $FLAGS $IMPORT_FLAGS
+    $binary import $FLAGS $IMPORT_FLAGS
+#    wasmer run $binary $WASM_FLAGS import $FLAGS $IMPORT_FLAGS
 fi
 
 echo "Running wasix-eth with flags $FLAGS"
-#$binary run $FLAGS
-wasmer run $binary $WASM_FLAGS "--" $FLAGS
+$binary run $FLAGS
+#wasmer run $binary $WASM_FLAGS $FLAGS

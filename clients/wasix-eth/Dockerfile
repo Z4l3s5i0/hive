@@ -19,8 +19,10 @@ RUN curl https://get.wasmer.io -sSfL | sh
 #RUN chmod +x /usr/local/bin/wasix_eth
 
 # Copy the pre-built binary from the host wasi compiled variant
-COPY wasix_eth.wasi.wasm /usr/local/bin/wasix_eth.wasi.wasm
-RUN chmod +x /usr/local/bin/wasix_eth.wasi.wasm
+COPY wasix_eth /usr/local/bin/wasix_eth
+#COPY wasix_eth.wasi.wasm /usr/local/bin/wasix_eth.wasi.wasm
+#RUN chmod +x /usr/local/bin/wasix_eth.wasi.wasm
+RUN chmod +x /usr/local/bin/wasix_eth
 
 # Generate a dummy version.txt (or handle it more properly if the binary supports --version)
 RUN echo "wasix-eth-0.1.0" > /version.txt
