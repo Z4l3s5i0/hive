@@ -26,6 +26,6 @@ RUN chmod +x /hive-bin/enode.sh
 ADD genesis.json /genesis.json
 
 # Export the usual networking ports
-EXPOSE 8545 8551 9001 9002 3000 9050
+EXPOSE 8545 8551 30303 30304 3000 9050
 
 ENTRYPOINT ["/wasix-eth.sh"]

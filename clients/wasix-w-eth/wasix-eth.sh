@@ -65,17 +65,21 @@ fi
 FLAGS="$FLAGS --eth-rpc-port 8545"
 FLAGS="$FLAGS --auth-rpc-port 8551"
 
+# RPC Ports
+FLAGS="$FLAGS --discovery_port 30303"
+FLAGS="$FLAGS --p2p-port 30304"
+
 # JWT Secret
 if [ "$HIVE_TERMINAL_TOTAL_DIFFICULTY" != "" ]; then
     echo "0x7365637265747365637265747365637265747365637265747365637265747365" > /jwtsecret
     FLAGS="$FLAGS --auth-rpc-jwt-path /jwtsecret"
 fi
 
-# Dev mode (mining)
-if [ "$HIVE_MINER" != "" ]; then
-    PERIOD=${HIVE_CLIQUE_PERIOD:-12}
-    FLAGS="$FLAGS --dev $PERIOD"
-fi
+## Dev mode (mining)
+#if [ "$HIVE_MINER" != "" ]; then
+#    PERIOD=${HIVE_CLIQUE_PERIOD:-12}
+#    FLAGS="$FLAGS --dev $PERIOD"
+#fi
 
 # External IP
 ip=$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
