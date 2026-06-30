@@ -5,18 +5,8 @@
 # Immediately abort the script on any error encountered
 set -e
 
-binary=/usr/local/bin/wasix_eth
+binary=/app/wasix_eth
 FLAGS="--verbose 1"
-#if [ "$HIVE_LOGLEVEL" != "" ]; then
-#    # Mapping hive loglevels to our verbosity (0-5 -> 0-2 range roughly)
-#    if [ "$HIVE_LOGLEVEL" -ge 4 ]; then
-#        FLAGS="$FLAGS --verbose 2"
-#    elif [ "$HIVE_LOGLEVEL" -ge 2 ]; then
-#        FLAGS="$FLAGS --verbose 1"
-#    else
-#        FLAGS="$FLAGS --verbose 0"
-#    fi
-#fi
 
 # Bootnodes
 if [ "$HIVE_BOOTNODE" != "" ]; then
@@ -88,6 +78,8 @@ fi
 # External IP
 ip=$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
 FLAGS="$FLAGS --ext-ip $ip"
+
+FLAGS="$FLAGS --data-dir /data"
 
 # Run the implementation with the requested flags.
 echo "Initializing genesis..."

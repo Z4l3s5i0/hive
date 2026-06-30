@@ -10,7 +10,7 @@
 set -e
 
 # Retry loop to wait for the node to start
-for i in {1..30}; do
+for i in {1..120}; do
     TARGET_RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"admin_nodeInfo","params":[],"id":1}' "127.0.0.1:8545" || true)
     
     if [ -n "$TARGET_RESPONSE" ]; then
@@ -19,6 +19,9 @@ for i in {1..30}; do
             echo "$TARGET_ENODE"
             exit 0
         fi
+        echo "Response received but no enode found: $TARGET_RESPONSE" >&2
+    else
+        echo "No response from node yet (attempt $i)..." >&2
     fi
     sleep 1
 done

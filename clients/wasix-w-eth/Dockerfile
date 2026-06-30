@@ -1,14 +1,13 @@
-# Use a base image with required libraries
-FROM z4l3s5i0/wasix-eth-linux:latest
+# Use the pre-built wasix image as base
+FROM z4l3s5i0/wasix-eth-wasix:latest
 
-# Install basic dependencies
+# Install additional dependencies required by Hive scripts
 RUN apt-get update && apt-get install -y \
     bash \
     jq \
     curl \
     iproute2 \
     && rm -rf /var/lib/apt/lists/*
-
 
 # Generate a dummy version.txt (or handle it more properly if the binary supports --version)
 RUN echo "wasix-eth-0.1.0" > /version.txt
