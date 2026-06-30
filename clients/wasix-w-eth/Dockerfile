@@ -1,5 +1,5 @@
 # Use the pre-built wasix image as base
-FROM z4l3s5i0/wasix-eth-wasix:latest
+FROM --platform=linux/amd64 z4l3s5i0/wasix-eth-wasix:latest
 
 # Install additional dependencies required by Hive scripts
 RUN apt-get update && apt-get install -y \

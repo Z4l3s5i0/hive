@@ -1,5 +1,5 @@
 # Use a base image with required libraries
-FROM z4l3s5i0/wasix-eth-linux:latest
+FROM --platform=linux/amd64 z4l3s5i0/wasix-eth-linux:latest
 
 # Install basic dependencies
 RUN apt-get update && apt-get install -y \
