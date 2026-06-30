@@ -64,7 +64,7 @@ FLAGS="$FLAGS --eth-rpc-port 8545"
 FLAGS="$FLAGS --auth-rpc-port 8551"
 
 # RPC Ports
-FLAGS="$FLAGS --discovery_port 30303"
+FLAGS="$FLAGS --discovery-port 30303"
 FLAGS="$FLAGS --p2p-port 30304"
 
 # JWT Secret
