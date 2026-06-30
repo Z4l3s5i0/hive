@@ -14,7 +14,7 @@ RUN echo "wasix-eth-0.1.0" > /version.txt
 
 # Inject the startup script.
 ADD wasix-eth.sh /wasix-eth.sh
-RUN echo "." > /mapper.jq
+ADD mapper.jq /mapper.jq
 RUN chmod +x /wasix-eth.sh
 
 # Inject the enode id retriever script.

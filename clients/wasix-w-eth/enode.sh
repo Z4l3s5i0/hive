@@ -10,8 +10,9 @@
 set -e
 
 # Retry loop to wait for the node to start
+ip=$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
 for i in {1..120}; do
-    TARGET_RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"admin_nodeInfo","params":[],"id":1}' "127.0.0.1:8545" || true)
+    TARGET_RESPONSE=$(curl -s -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"admin_nodeInfo","params":[],"id":1}' "$ip:8545" || true)
     
     if [ -n "$TARGET_RESPONSE" ]; then
         TARGET_ENODE=$(echo "${TARGET_RESPONSE}" | jq -r '.result.enode' 2>/dev/null || true)
