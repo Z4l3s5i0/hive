@@ -7,7 +7,7 @@ set -e
 
 binary=/app/wasix_eth.wasm
 FLAGS="--verbose 1"
-WASM_FLAGS="--enable-threads --net --volume /:/"
+WASM_FLAGS="--enable-async-threads --net --volume /:/"
 
 
 # Bootnodes
