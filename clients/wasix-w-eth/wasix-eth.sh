@@ -88,8 +88,8 @@ FLAGS="$FLAGS --ext-ip $ip"
 FLAGS="$FLAGS --data-dir /data"
 
 # Run the implementation with the requested flags.
-echo "Initializing genesis..."
-wasmer run $binary $WASM_FLAGS -- init $FLAGS
+#echo "Initializing genesis..."
+#wasmer run $binary $WASM_FLAGS -- init $FLAGS
 if [ "$IMPORT_FLAGS" != "" ]; then
     echo "Importing blocks..."
     wasmer run $binary $WASM_FLAGS -- import $FLAGS $IMPORT_FLAGS

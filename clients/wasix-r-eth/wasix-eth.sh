@@ -86,8 +86,8 @@ FLAGS="$FLAGS --ext-ip $ip"
 FLAGS="$FLAGS --data-dir /data"
 
 # Run the implementation with the requested flags.
-echo "Initializing genesis..."
-$binary init $FLAGS $IMPORT_FLAGS
+#echo "Initializing genesis..."
+#$binary init $FLAGS $IMPORT_FLAGS
 if [ "$IMPORT_FLAGS" != "" ]; then
     echo "Importing blocks..."
     $binary import $FLAGS $IMPORT_FLAGS
