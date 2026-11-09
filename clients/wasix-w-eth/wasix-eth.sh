@@ -6,7 +6,7 @@
 set -e
 
 binary=/app/wasix_eth.wasm
-FLAGS="--verbose 1"
+FLAGS="--verbose 3"
 WASM_FLAGS="--enable-async-threads --net --volume /:/"
 
 
